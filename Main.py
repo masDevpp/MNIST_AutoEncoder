@@ -164,7 +164,9 @@ class FeatureExtracter:
         self.save_encoded_vector(log_dir, enc, self.reader.y_test)
 
         #self.plot_2D(enc, self.reader.y_test)
-        self.plot_3D(enc, self.reader.y_test)
+        #self.plot_3D(enc, self.reader.y_test)
+
+        self.plot_hist(enc, self.reader.y_test)
 
         #self.clusterize(log_dir, enc, 12)
 
@@ -219,6 +221,22 @@ class FeatureExtracter:
         plt.ylabel("y")
 
         plt.legend()
+        plt.show()
+
+    def plot_hist(self, enc, y, num_class=10, stride=1):
+        num_dim = enc.shape[1]
+
+        fig, ax = plt.subplots(num_class, num_dim)
+
+        for c in range(num_class):
+            for dim in range(num_dim):
+                ax[c, dim].hist(enc[self.reader.y_test==c][::stride,dim], bins=20)
+                #if c == 0: ax[c, dim].set_title(f"dim {dim}")
+                ax[c, dim].set_title(f"dim {dim}")
+                if dim == 0: ax[c, dim].set_ylabel(f"class {c}")
+                #ax[c, dim].label_outer()
+        
+        fig.tight_layout()
         plt.show()
 
     def clusterize(self, log_dir, enc, num_cluster):
