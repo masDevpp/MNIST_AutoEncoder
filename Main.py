@@ -140,8 +140,6 @@ def get_image(data):
 
 class FeatureExtracter:
     def __init__(self, model_index, checkpoint_index):
-        from mpl_toolkits.mplot3d import Axes3D
-
         self.reader = Reader()
         
         self.model = Model(model_index)
@@ -163,11 +161,50 @@ class FeatureExtracter:
         
         enc = np.array(enc)
 
+        self.save_encoded_vector(log_dir, enc, self.reader.y_test)
+
+        #self.plot_2D(enc, self.reader.y_test)
+        self.plot_3D(enc, self.reader.y_test)
+
+        #self.clusterize(log_dir, enc, 12)
+
+        print("exit")
+
+    def save_encoded_vector(self, log_dir, enc, y):
+        file_path = os.path.join(log_dir, "vector.txt")
+
+        if os.path.exists(file_path):
+            print("Encoded vector file already exists")
+            return
+        
+        with open(file_path, "a") as fp:
+            for i in range(y.shape[0]):
+                fp.write(str(y[i]) + ",")
+                for dim in range(enc.shape[1]):
+                    fp.write(str(enc[i][dim]) + ",")
+                fp.write("\n")
+
+    def plot_2D(self, enc, y, num_class=10, stride=1):
+        for c in range(num_class):
+            marker = "+"
+            if c == 4: marker = "1"
+            if c == 5: marker = "2"
+            if c == 7: marker = "."
+            if c == 9: marker = "x"
+            x = enc[self.reader.y_test==c][::stride,0]
+            y = enc[self.reader.y_test==c][::stride,1]
+            plt.scatter(x, y, label=str(c), marker=marker)
+        
+        plt.legend()
+        plt.show()
+
+    def plot_3D(self, enc, y, num_class=10, stride=1):
+        from mpl_toolkits.mplot3d import Axes3D
+
         fig = plt.figure()
         ax = Axes3D(fig)
 
-        stride = 1
-        for c in range(10):
+        for c in range(num_class):
             marker = "+"
             if c == 4: marker = "1"
             if c == 5: marker = "2"
@@ -176,14 +213,15 @@ class FeatureExtracter:
             x = enc[self.reader.y_test==c][::stride,0]
             y = enc[self.reader.y_test==c][::stride,1]
             z = enc[self.reader.y_test==c][::stride,2]
-            #plt.scatter(x, y, label=str(c), marker="+") # 2D scatter
-            ax.scatter(x, y, z, label=str(c), marker=marker) # 3D scatter
+            ax.scatter(x, y, z, label=str(c), marker=marker)
         
-        plt.ion()
+        plt.xlabel("x")
+        plt.ylabel("y")
+
         plt.legend()
         plt.show()
-        
-        num_cluster = 12
+
+    def clusterize(self, log_dir, enc, num_cluster):
         cluster = KMeans(num_cluster, max_iter=3000).fit_predict(enc)
 
         y_onehot = np.eye(10)[self.reader.y_test]
@@ -193,8 +231,6 @@ class FeatureExtracter:
         for i, yy in enumerate(y_onehot):
             c = cluster[i]
             y_onehot_accum[c] = y_onehot_accum[c] + y_onehot[i]
-
-        self.save_vector(log_dir, enc, self.reader.y_test, cluster, y_onehot_accum)
 
         # Save image for cluster dir
         print("Save image")
@@ -209,20 +245,6 @@ class FeatureExtracter:
             image = get_image(self.reader.x_test[i])
             image[0].save(file_name)
 
-    def save_vector(self, log_dir, enc, y, cluster, y_onehot_accum):
-        vector_file = os.path.join(log_dir, "encoder_out.txt")
-
-        with open(vector_file, "a") as fp:
-            for batch in range(enc.shape[0]):
-                fp.write(str(y[batch]) + "," + str(cluster[batch]) + ",")
-                for i in range(enc.shape[1]):
-                    fp.write(str(enc[batch][i]) + ",")
-                fp.write("\n")
-            
-            fp.write("\n")
-            for i in range(y_onehot_accum.shape[0]):
-                fp.write(f"Cluster{i:02}," + str(y_onehot_accum[i]) + "\n")
-            
 
 if __name__ == "__main__":
     #Main()
