@@ -228,15 +228,31 @@ class FeatureExtracter:
 
         fig, ax = plt.subplots(num_class, num_dim)
 
+        xmin = [enc.max() for _ in range(num_dim)]
+        xmax = [enc.min() for _ in range(num_dim)]
+
+        ymax = [0 for _ in range(num_dim)]
+
         for c in range(num_class):
             for dim in range(num_dim):
                 ax[c, dim].hist(enc[self.reader.y_test==c][::stride,dim], bins=20)
-                #if c == 0: ax[c, dim].set_title(f"dim {dim}")
-                ax[c, dim].set_title(f"dim {dim}")
+                
+                mean = enc[self.reader.y_test==c][::stride,dim].mean()
+                std = enc[self.reader.y_test==c][::stride,dim].std()
+                ax[c, dim].set_title(f"m{mean:.1f}, s{std:.2f}")
+
                 if dim == 0: ax[c, dim].set_ylabel(f"class {c}")
-                #ax[c, dim].label_outer()
+                
+                if ax[c, dim].get_xlim()[0] < xmin[dim]: xmin[dim] = ax[c, dim].get_xlim()[0]
+                if ax[c, dim].get_xlim()[1] > xmax[dim]: xmax[dim] = ax[c, dim].get_xlim()[1]
+                if ax[c, dim].get_ylim()[1] > ymax[dim]: ymax[dim] = ax[c, dim].get_ylim()[1]
         
-        fig.tight_layout()
+        for c in range(num_class):
+            for dim in range(num_dim):
+                ax[c, dim].set_xlim(xmin[dim], xmax[dim])
+                ax[c, dim].set_ylim(0, ymax[dim])
+
+        fig.subplots_adjust(hspace=0.8)
         plt.show()
 
     def clusterize(self, log_dir, enc, num_cluster):
