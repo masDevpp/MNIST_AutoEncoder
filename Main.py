@@ -139,41 +139,48 @@ def get_image(data):
     return images
 
 class FeatureExtracter:
-    def __init__(self, model_index, checkpoint_index):
-        self.reader = Reader()
+    def __init__(self, model_index, checkpoint_index, dataset):
+        reader = Reader()
+
+        if dataset == "train":
+            input = reader.x_train[:10000]
+            label = reader.y_train[:10000]
+        else:
+            input = reader.x_test
+            label = reader.y_test
         
-        self.model = Model(model_index)
+        model = Model(model_index)
 
         log_dir = os.path.join(LOG_DIR, "model_" + str(model_index))
         
-        if self.model.mod_support > 0:
+        if model.mod_support > 0:
             log_dir += "_mod_" + str(MOD)
 
         checkpoint_path = os.path.join(log_dir, str(checkpoint_index))
-        self.model.load_model(checkpoint_path)
+        model.load_model(checkpoint_path)
 
-        if self.model.mod_support == 0:
-            enc, _ = self.model.predict(self.reader.x_test)
-        elif self.model.mod_support == 1:
-            enc, pred, pred_mod = self.model.predict_with_mod(self.reader.x_test, (self.reader.y_test % MOD).astype("float"))
-        elif self.model.mod_support == 2:
-            enc, pred, pred_mod = self.model.predict_with_mod_2(self.reader.x_test, (self.reader.y_test % MOD).astype("float"))
+        if model.mod_support == 0:
+            enc, _ = model.predict(input)
+        elif model.mod_support == 1:
+            enc, pred, pred_mod = model.predict_with_mod(input, (label % MOD).astype("float"))
+        elif model.mod_support == 2:
+            enc, pred, pred_mod = model.predict_with_mod_2(input, (label % MOD).astype("float"))
         
         enc = np.array(enc)
 
-        self.save_encoded_vector(log_dir, enc, self.reader.y_test)
+        self.save_encoded_vector(log_dir, enc, label, dataset)
 
-        self.plot_2D(enc[:, 0], enc[:, 1], self.reader.y_test)
-        self.plot_3D(enc[:, 0], enc[:, 1], enc[:, 2], self.reader.y_test)
+        self.plot_2D(enc[:, 0], enc[:, 1], label)
+        self.plot_3D(enc[:, 0], enc[:, 1], enc[:, 2], label)
 
-        self.plot_hist(enc, self.reader.y_test)
+        self.plot_hist(enc, label)
 
         #self.clusterize(log_dir, enc, 12)
 
         print("exit")
 
-    def save_encoded_vector(self, log_dir, enc, y):
-        file_path = os.path.join(log_dir, "vector.txt")
+    def save_encoded_vector(self, log_dir, enc, y, dataset):
+        file_path = os.path.join(log_dir, "vector_" + dataset + ".txt")
 
         if os.path.exists(file_path):
             print("Encoded vector file already exists")
@@ -223,7 +230,7 @@ class FeatureExtracter:
         plt.legend()
         plt.show()
 
-    def plot_hist(self, enc, y, num_class=10, stride=1):
+    def plot_hist(self, enc, label, num_class=10, stride=1):
         num_dim = enc.shape[1]
 
         fig, ax = plt.subplots(num_class, num_dim)
@@ -235,10 +242,10 @@ class FeatureExtracter:
 
         for c in range(num_class):
             for dim in range(num_dim):
-                ax[c, dim].hist(enc[self.reader.y_test==c][::stride,dim], bins=20)
+                ax[c, dim].hist(enc[label==c][::stride,dim], bins=20)
                 
-                mean = enc[self.reader.y_test==c][::stride,dim].mean()
-                std = enc[self.reader.y_test==c][::stride,dim].std()
+                mean = enc[label==c][::stride,dim].mean()
+                std = enc[label==c][::stride,dim].std()
                 ax[c, dim].set_title(f"m{mean:.1f}, s{std:.2f}")
 
                 if dim == 0: ax[c, dim].set_ylabel(f"class {c}")
@@ -282,4 +289,4 @@ class FeatureExtracter:
 
 if __name__ == "__main__":
     #Main()
-    FeatureExtracter(13, 750000)
+    FeatureExtracter(12, 750000, "train")
