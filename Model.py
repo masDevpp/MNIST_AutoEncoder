@@ -1158,60 +1158,38 @@ class Model:
         self.model.load_weights(load_path)
 
     @tf.function()
-    def predict(self, x, training=False):
-        return self.model(x, training=training)
+    def predict(self, x, mod=None, training=False):
+        if self.mod_support == 0 or self.mod_support == 2:
+            return self.model(x, training=training)
+        elif self.mod_support == 1:
+            return self.model([x, mod], training=training)
 
     @tf.function()
-    def predict_with_mod(self, x, mod, training=False):
-        return self.model([x, mod], training=training)
-
-    @tf.function()
-    def predict_with_mod_2(self, x, mod, training=False):
-        return self.model(x, training=training)
-
-    @tf.function()
-    def get_loss(self, x, y):
-        #return tf.reduce_mean(((x - y) ** 2) / 2)
-        return tf.keras.losses.MeanSquaredError()(x, y) / 2
-
-    @tf.function()
-    def get_loss_with_mod(self, x, mod, y, y_mod):
-        #return tf.reduce_mean(((x - y) ** 2) / 2)
+    def get_loss(self, x, y, x_mod=None, y_mod=None):
         loss = tf.keras.losses.MeanSquaredError()(x, y) / 2
-        loss += tf.keras.losses.MeanSquaredError()(mod, y_mod) / 2
+
+        if self.mod_support == 1 or self.mod_support == 2:
+            loss += tf.keras.losses.MeanSquaredError()(x_mod, y_mod) / 2
+            
         return loss
 
     @tf.function()
-    def train(self, x):
+    def train(self, x, mod=None):
         with tf.GradientTape() as tape:
-            enc, pred =  self.model(x, training=True)
-            loss = self.get_loss(x, pred)
+            if self.mod_support == 0:
+                # No mod input/output
+                enc, pred =  self.model(x, training=True)
+                loss = self.get_loss(x, pred)
+            elif self.mod_support == 1:
+                # Input x and mod then output pred and pred_mod
+                enc, pred, pred_mod =  self.model([x, mod], training=True)
+                loss = self.get_loss(x, pred, x_mod=mod, y_mod=pred_mod)
+            elif self.mod_support == 2:
+                # Input x only then output pred and pred_mod
+                enc, pred, pred_mod =  self.model(x, training=True)
+                loss = self.get_loss(x, pred, x_mod=mod, y_mod=pred_mod)
         
         gradient = tape.gradient(loss, self.model.trainable_variables)
         self.optimizer.apply_gradients(zip(gradient, self.model.trainable_variables))
 
         return loss
-
-    @tf.function()
-    def train_with_mod(self, x, mod):
-        with tf.GradientTape() as tape:
-            enc, pred, mod_pred =  self.model([x, mod], training=True)
-            loss = self.get_loss_with_mod(x, mod, pred, mod_pred)
-        
-        gradient = tape.gradient(loss, self.model.trainable_variables)
-        self.optimizer.apply_gradients(zip(gradient, self.model.trainable_variables))
-
-        return loss
-
-    @tf.function()
-    def train_with_mod_2(self, x, mod):
-        with tf.GradientTape() as tape:
-            enc, pred, mod_pred =  self.model(x, training=True)
-            loss = self.get_loss_with_mod(x, mod, pred, mod_pred)
-        
-        gradient = tape.gradient(loss, self.model.trainable_variables)
-        self.optimizer.apply_gradients(zip(gradient, self.model.trainable_variables))
-
-        return loss
-
-    

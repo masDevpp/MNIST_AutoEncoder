@@ -69,9 +69,9 @@ class Main:
             if self.model.mod_support == 0:
                 loss = self.model.train(x)
             elif self.model.mod_support == 1:
-                loss = self.model.train_with_mod(x, (y % MOD).astype("float"))
+                loss = self.model.train(x, (y % MOD).astype("float"))
             elif self.model.mod_support == 2:
-                loss = self.model.train_with_mod_2(x, (y % MOD).astype("float"))
+                loss = self.model.train(x, (y % MOD).astype("float"))
             train_time += time.time() - train_start
 
             if itr % LOG_FREQ == 0:
@@ -105,12 +105,12 @@ class Main:
             loss = self.model.get_loss(x_test, pred)
         elif self.model.mod_support == 1:
             mod = (y_test % MOD).astype("float")
-            enc, pred, pred_mod = self.model.predict_with_mod(x_test, mod)
-            loss = self.model.get_loss_with_mod(x_test, mod, pred, pred_mod)
+            enc, pred, pred_mod = self.model.predict(x_test, mod)
+            loss = self.model.get_loss(x_test, pred, x_mod=mod, y_mod=pred_mod)
         elif self.model.mod_support == 2:
             mod = (y_test % MOD).astype("float")
-            enc, pred, pred_mod = self.model.predict_with_mod_2(x_test, mod)
-            loss = self.model.get_loss_with_mod(x_test, mod, pred, pred_mod)
+            enc, pred, pred_mod = self.model.predict(x_test)
+            loss = self.model.get_loss(x_test, pred, x_mod=mod, y_mod=pred_mod)
 
         combined = np.concatenate((x_test, pred), axis=2)
         images = get_image(combined)
@@ -162,9 +162,9 @@ class FeatureExtracter:
         if model.mod_support == 0:
             enc, _ = model.predict(input)
         elif model.mod_support == 1:
-            enc, pred, pred_mod = model.predict_with_mod(input, (label % MOD).astype("float"))
+            enc, pred, pred_mod = model.predict(input, (label % MOD).astype("float"))
         elif model.mod_support == 2:
-            enc, pred, pred_mod = model.predict_with_mod_2(input, (label % MOD).astype("float"))
+            enc, pred, pred_mod = model.predict(input, (label % MOD).astype("float"))
         
         enc = np.array(enc)
 
