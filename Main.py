@@ -15,6 +15,7 @@ TEST_FREQ = LOG_FREQ * 2
 SAVE_FREQ = LOG_FREQ * 5
 LOG_DIR = os.path.join(os.curdir, "log")
 MOD = 3
+MAX_EPOCH = 400
 
 class Main:
     def __init__(self):
@@ -23,7 +24,7 @@ class Main:
 
         self.reader = Reader()
         
-        max_itr = int(400 * self.reader.train_size / BATCH_SIZE) + 1
+        max_itr = int(MAX_EPOCH * self.reader.train_size / BATCH_SIZE) + 1
 
         model_index = 13
         while True:
