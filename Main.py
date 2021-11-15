@@ -36,7 +36,7 @@ class Main:
                 log_dir += "_mod_" + str(MOD)
 
             if os.path.exists(log_dir):
-                print("Output dir already exist")
+                raise Exception("Output dir already exist")
                 return
             else:
                 os.mkdir(log_dir)
