@@ -16,6 +16,7 @@ SAVE_FREQ = LOG_FREQ * 5
 LOG_DIR = os.path.join(os.curdir, "log")
 MOD = 3
 MAX_EPOCH = 400
+MASK_RATIO = 0.7
 
 class Main:
     def __init__(self):
@@ -67,12 +68,11 @@ class Main:
             read_time += time.time() - read_start
 
             train_start = time.time()
+            mod, mask = self.get_mod(y)
             if self.model.mod_support == 0:
                 loss = self.model.train(x)
-            elif self.model.mod_support == 1:
-                loss = self.model.train(x, (y % MOD).astype("float32"))
-            elif self.model.mod_support == 2:
-                loss = self.model.train(x, (y % MOD).astype("float32"))
+            elif self.model.mod_support == 1 or self.model.mod_support == 2:
+                loss = self.model.train(x, mod, mask)
             train_time += time.time() - train_start
 
             if itr % LOG_FREQ == 0:
@@ -101,22 +101,29 @@ class Main:
     def test(self):
         x_test, y_test = self.reader.get_test_batch(int(BATCH_SIZE / 2))
 
+        mod, mask = self.get_mod(y_test)
+        
         if self.model.mod_support == 0:
             enc, pred = self.model.predict(x_test)
             loss = self.model.get_loss(x_test, pred)
         elif self.model.mod_support == 1:
-            mod = (y_test % MOD).astype("float32")
             enc, pred, pred_mod = self.model.predict(x_test, mod)
-            loss = self.model.get_loss(x_test, pred, x_mod=mod, y_mod=pred_mod)
+            loss = self.model.get_loss(x_test, pred, x_mod=mod, y_mod=pred_mod, mask=mask)
         elif self.model.mod_support == 2:
-            mod = (y_test % MOD).astype("float32")
             enc, pred, pred_mod = self.model.predict(x_test)
-            loss = self.model.get_loss(x_test, pred, x_mod=mod, y_mod=pred_mod)
+            loss = self.model.get_loss(x_test, pred, x_mod=mod, y_mod=pred_mod, mask=mask)
 
         combined = np.concatenate((x_test, pred), axis=2)
         images = get_image(combined)
 
         return loss, images
+
+    def get_mod(self, y):
+        mod = (y % MOD).astype("float32")
+        mask = np.random.rand(mod.shape[0])
+        mask = (mask > MASK_RATIO).astype("float32")
+
+        return mod, mask
     
 def get_image(data):
     data = np.array(data)

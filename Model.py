@@ -1165,16 +1165,19 @@ class Model:
             return self.model([x, mod], training=training)
 
     @tf.function()
-    def get_loss(self, x, y, x_mod=None, y_mod=None):
+    def get_loss(self, x, y, x_mod=None, y_mod=None, mask=None):
         loss = tf.keras.losses.MeanSquaredError()(x, y) / 2
 
         if self.mod_support == 1 or self.mod_support == 2:
-            loss += tf.keras.losses.MeanSquaredError()(x_mod, y_mod) / 2
+            mse = tf.math.pow(tf.math.subtract(x_mod, y_mod), 2)
+            if mask is not None:
+                mse = mse * mask
+            loss += tf.reduce_mean(mse) / 2
             
         return loss
 
     @tf.function()
-    def train(self, x, mod=None):
+    def train(self, x, mod=None, mask=None):
         with tf.GradientTape() as tape:
             if self.mod_support == 0:
                 # No mod input/output
@@ -1183,11 +1186,11 @@ class Model:
             elif self.mod_support == 1:
                 # Input x and mod then output pred and pred_mod
                 enc, pred, pred_mod =  self.model([x, mod], training=True)
-                loss = self.get_loss(x, pred, x_mod=mod, y_mod=pred_mod)
+                loss = self.get_loss(x, pred, x_mod=mod, y_mod=pred_mod, mask=mask)
             elif self.mod_support == 2:
                 # Input x only then output pred and pred_mod
                 enc, pred, pred_mod =  self.model(x, training=True)
-                loss = self.get_loss(x, pred, x_mod=mod, y_mod=pred_mod)
+                loss = self.get_loss(x, pred, x_mod=mod, y_mod=pred_mod, mask=mask)
         
         gradient = tape.gradient(loss, self.model.trainable_variables)
         self.optimizer.apply_gradients(zip(gradient, self.model.trainable_variables))
