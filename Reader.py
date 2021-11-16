@@ -4,8 +4,8 @@ import tensorflow as tf
 class Reader:
     def __init__(self):
         (self.x_train, self.y_train), (self.x_test, self.y_test) = tf.keras.datasets.mnist.load_data()
-        self.x_train = self.x_train / 255.0
-        self.x_test = self.x_test / 255.0
+        self.x_train = (self.x_train / 255.0).astype("float32")
+        self.x_test = (self.x_test / 255.0).astype("float32")
         self.x_train = self.x_train.reshape(self.x_train.shape + (1,))
         self.x_test = self.x_test.reshape(self.x_test.shape + (1,))
 

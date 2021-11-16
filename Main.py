@@ -70,9 +70,9 @@ class Main:
             if self.model.mod_support == 0:
                 loss = self.model.train(x)
             elif self.model.mod_support == 1:
-                loss = self.model.train(x, (y % MOD).astype("float"))
+                loss = self.model.train(x, (y % MOD).astype("float32"))
             elif self.model.mod_support == 2:
-                loss = self.model.train(x, (y % MOD).astype("float"))
+                loss = self.model.train(x, (y % MOD).astype("float32"))
             train_time += time.time() - train_start
 
             if itr % LOG_FREQ == 0:
@@ -105,11 +105,11 @@ class Main:
             enc, pred = self.model.predict(x_test)
             loss = self.model.get_loss(x_test, pred)
         elif self.model.mod_support == 1:
-            mod = (y_test % MOD).astype("float")
+            mod = (y_test % MOD).astype("float32")
             enc, pred, pred_mod = self.model.predict(x_test, mod)
             loss = self.model.get_loss(x_test, pred, x_mod=mod, y_mod=pred_mod)
         elif self.model.mod_support == 2:
-            mod = (y_test % MOD).astype("float")
+            mod = (y_test % MOD).astype("float32")
             enc, pred, pred_mod = self.model.predict(x_test)
             loss = self.model.get_loss(x_test, pred, x_mod=mod, y_mod=pred_mod)
 
