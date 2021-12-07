@@ -21,6 +21,7 @@ class Model:
             self.build_model_11,
             self.build_model_12,
             self.build_model_13,
+            self.build_model_14,
         ]
 
         self.model, self.mod_support = self.models[model_index](self.input_shape)
@@ -1138,6 +1139,91 @@ class Model:
         decoder_out = decoder_conv_net(decoder_dence_activation)
 
         return tf.keras.Model(inputs=input, outputs=[encoder_out, decoder_out, output_mod]), 2
+
+    def build_model_14(self, input_shape):
+        # model 11 base, output 1 dim encoded vector
+        input = tf.keras.Input(input_shape)
+
+        encoder_net =  tf.keras.Sequential([
+            tf.keras.layers.Conv2D(4, 3, use_bias=False, padding="same"),   # 28x28x4
+            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.LeakyReLU(),
+            tf.keras.layers.MaxPool2D(),
+            tf.keras.layers.Conv2D(8, 3, use_bias=False, padding="same"),   # 14x14x8
+            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.LeakyReLU(),
+            tf.keras.layers.MaxPool2D(),
+            tf.keras.layers.Conv2D(16, 3, use_bias=False, padding="same"),  # 7x7x16
+            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.LeakyReLU(),
+            tf.keras.layers.MaxPool2D(),                                    # 3x3x16 (=144)
+            tf.keras.layers.Flatten(),
+            tf.keras.layers.Dense(64, use_bias=False),
+            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.LeakyReLU(),
+            tf.keras.layers.Dense(32, use_bias=False),
+            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.LeakyReLU(),
+            tf.keras.layers.Dense(16, use_bias=False),
+            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.LeakyReLU(),
+            tf.keras.layers.Dense(8, use_bias=False),
+            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.LeakyReLU(),
+            tf.keras.layers.Dense(4, use_bias=False),
+            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.LeakyReLU(),
+            tf.keras.layers.Dense(1, use_bias=False),
+        ])
+
+        encoder_out = encoder_net(input)
+
+        activation = tf.keras.Sequential([
+            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.LeakyReLU(),
+        ])(encoder_out)
+
+        decoder_net = tf.keras.Sequential([
+            tf.keras.layers.Dense(4, use_bias=False),
+            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.LeakyReLU(),
+            tf.keras.layers.Dense(8, use_bias=False),
+            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.LeakyReLU(),
+            tf.keras.layers.Dense(16, use_bias=False),
+            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.LeakyReLU(),
+            tf.keras.layers.Dense(32, use_bias=False),
+            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.LeakyReLU(),
+            tf.keras.layers.Dense(64, use_bias=False),
+            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.LeakyReLU(),
+            tf.keras.layers.Dense(144, use_bias=False),
+            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.LeakyReLU(),
+            tf.keras.layers.Reshape((3, 3, 16)),
+            tf.keras.layers.UpSampling2D(),
+            tf.keras.layers.Conv2D(16, 3, use_bias=False, padding="same"),  # 6x6x16
+            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.LeakyReLU(),
+            tf.keras.layers.UpSampling2D(),                                 # 12x12x16
+            tf.keras.layers.ZeroPadding2D(),                                # 14x14x16
+            tf.keras.layers.Conv2D(8, 3, use_bias=False, padding="same"),   # 14x14x8
+            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.LeakyReLU(),
+            tf.keras.layers.UpSampling2D(),
+            tf.keras.layers.Conv2D(4, 3, use_bias=False, padding="same"),   # 28x28x4
+            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.LeakyReLU(),
+            tf.keras.layers.Conv2D(1, 3, use_bias=False, padding="same"),   # 28x28x1
+            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.ReLU(),
+        ])
+
+        decoder_out = decoder_net(activation)
+
+        return tf.keras.Model(inputs=input, outputs=[encoder_out, decoder_out]), 0
 
     def get_model_description(self):
         desc = ""
